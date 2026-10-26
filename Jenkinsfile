@@ -61,6 +61,18 @@ pipeline {
         }
     }
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                sh '''
+                    kubectl set image deployment/aws-devops-app \
+                        aws-devops-app=$DOCKER_IMAGE:$BUILD_NUMBER
+
+                    kubectl rollout status deployment/aws-devops-app \
+                        --timeout=120s
+                '''
+            }
+        }
+
     post {
         always {
             sh 'docker logout || true'
