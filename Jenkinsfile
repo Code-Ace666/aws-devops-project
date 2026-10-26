@@ -2,6 +2,11 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = 'saksham945/aws-devops-app'
+        DOCKER_CREDENTIALS = 'dockerhub-creds'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -27,8 +32,45 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t aws-devops-app:v1 .'
+                sh '''
+                    docker build -t $DOCKER_IMAGE:$BUILD_NUMBER .
+                    docker tag $DOCKER_IMAGE:$BUILD_NUMBER $DOCKER_IMAGE:latest
+                '''
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDENTIALS}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_TOKEN'
+                )]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKER_TOKEN" | docker login \
+                            -u "$DOCKER_USER" --password-stdin
+
+                        docker push $DOCKER_IMAGE:$BUILD_NUMBER
+                        docker push $DOCKER_IMAGE:latest
+
+                        docker logout
+                    '''
+                }
             }
         }
     }
+
+    post {
+        always {
+            sh 'docker logout || true'
+        }
+        success {
+            echo 'CI pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check Console Output.'
+        }
+    }
 }
+
