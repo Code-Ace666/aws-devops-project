@@ -53,13 +53,11 @@ pipeline {
 
                         docker push $DOCKER_IMAGE:$BUILD_NUMBER
                         docker push $DOCKER_IMAGE:latest
-
                         docker logout
                     '''
                 }
             }
         }
-    }
 
         stage('Deploy to Kubernetes') {
             steps {
@@ -72,13 +70,14 @@ pipeline {
                 '''
             }
         }
+    }
 
     post {
         always {
             sh 'docker logout || true'
         }
         success {
-            echo 'CI pipeline completed successfully!'
+            echo 'CI/CD pipeline completed successfully!'
         }
         failure {
             echo 'Pipeline failed. Check Console Output.'
